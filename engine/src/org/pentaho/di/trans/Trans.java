@@ -45,6 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -5374,7 +5375,7 @@ public class Trans implements VariableSpace, NamedParams, HasLogChannelInterface
    * Sets encoding of HttpServletResponse according to System encoding.Check if system encoding is null or an empty and
    * set it to HttpServletResponse when not and writes error to log if null. Throw IllegalArgumentException if input
    * parameter is null.
-   * 
+   *
    * @param response
    *          the HttpServletResponse to set encoding, mayn't be null
    */
@@ -5566,7 +5567,13 @@ public class Trans implements VariableSpace, NamedParams, HasLogChannelInterface
 
   protected ExecutorService startHeartbeat( long intervalInSeconds ) {
 
-    ScheduledExecutorService heartbeat = Executors.newSingleThreadScheduledExecutor();
+    ScheduledExecutorService heartbeat = Executors.newSingleThreadScheduledExecutor( new ThreadFactory() {
+      @Override public Thread newThread( Runnable r ) {
+        Thread thread = new Thread( r, "Transformation Heartbeat Thread for: " + getName() );
+        thread.setDaemon( true );
+        return thread;
+      }
+    } );
 
     heartbeat.scheduleAtFixedRate( new Runnable() {
       public void run() {
